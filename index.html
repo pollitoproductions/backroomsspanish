@@ -593,7 +593,7 @@
                     <strong style="color:#ff4444;">FLAMETHROWER</strong><br>
                     <span style="color:#ccc;font-size:0.92em;line-height:1.6;">
                         Hold the spray button to burn anything that gets close. Entities are rare and go down fast.<br>
-                        Tap it near a wall to tag it. <strong style="color:#ff6666;">Red cans</strong> refill your paint.
+                        Tap it near a wall to tag it. <strong style="color:#ff6666;">Red cans</strong> add 100 paint each (you can hold up to 1000).
                     </span>
                 </div>
                 <div style="text-align:left;background:rgba(0,0,0,0.4);padding:12px 15px;border-radius:8px;border-left:3px solid #00ff00;width:100%;box-sizing:border-box;">
@@ -778,11 +778,12 @@ const EXIT_MIN_DIST   = 80;
 const STAT_MAX           = 100;
 const ITEM_PICKUP_DIST   = 25;     // paint cans
 const VOCAB_PICKUP_DIST  = 12;     // vocabulary cards
-const VOCAB_HEAL         = 10;     // VIDA restored per word
+const VOCAB_HEAL         = 15;     // VIDA restored per word
 const VOCAB_LABEL_DIST   = 45;
 const DMG_SCALE          = 1.0;
 let PAINT_COUNT          = 300;
-let ENTITY_COUNT         = 200;
+const MAX_PAINT            = 1000;  // save up as you go
+let ENTITY_COUNT         = 110;
 const ENTITY_MIN_DIST    = 15.0;  // close enough to burn — 45 unit flame still reaches
 
 let lookSensitivity = 2.0;
@@ -3942,10 +3943,10 @@ function checkItemPickups(){
             if (Math.abs(dx) < ITEM_PICKUP_DIST && Math.abs(dz) < ITEM_PICKUP_DIST) {
                 b.collected = true; scene.remove(b.group);
                 if (!unlimitedPaint) {
-                    spraysLeft = 100;
+                    spraysLeft = Math.min(MAX_PAINT, spraysLeft + 100);
                     sprayCounterEl.innerText = `SPRAYS: ${Math.ceil(spraysLeft)}`;
                 }
-                showPickupFlash('Paint Refilled!', '#ff4444');
+                showPickupFlash('Paint +100!', '#ff4444');
                 updateStatusBars();
             }
         }
@@ -4866,7 +4867,7 @@ function animate() {
                 // ── BACTERIA STATE MACHINE ──────────────────────────────
                 if (e.state === 'idle') {
                     // Always investigating — bacteria are never truly passive
-                    if (dist < 400) {
+                    if (dist < 280) {
                         e.state = 'investigating';
                         e.interestTimer = 1 + Math.random() * 2;
                         e.lastKnownPlayerX = px;
