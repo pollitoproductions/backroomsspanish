@@ -131,7 +131,7 @@
         #top-hud {
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             display: flex; flex-direction: row; justify-content: center; align-items: center;
-            gap: 25px; z-index: 30; pointer-events: none; width: 98%; max-width: 1000px;
+            gap: 25px; z-index: 30; pointer-events: none; width: calc(100% - 150px); max-width: 1000px;
             white-space: nowrap;
         }
         .hud-text-group, .hud-bar-group {
@@ -173,7 +173,7 @@
         }
         
         @media (max-width: 850px) and (orientation: landscape) {
-            #top-hud { gap: 15px; top: 10px; width: 100%; }
+            #top-hud { gap: 15px; top: 10px; width: calc(100% - 150px); }
             .hud-text-group, .hud-bar-group { gap: 10px; }
             .status-bar-bg { width: 85px; }
             #timer { font-size: 18px; }
@@ -182,7 +182,9 @@
         }
 
         @media (max-width: 760px) and (orientation: portrait) {
-            #top-hud { flex-direction: column; gap: 10px; top: 10px; }
+            #top-hud { flex-direction: column; gap: 6px; top: 10px; width: calc(100% - 150px); }
+            .hud-text-group { flex-wrap: wrap; white-space: normal; gap: 2px 12px !important; }
+            #timer, #spray-counter, #word-counter { font-size: 13px; }
             .hud-text-group, .hud-bar-group { gap: 15px; }
             .status-bar-bg { width: 90px; } 
         }
@@ -449,7 +451,7 @@
     <div id="top-hud" style="display:none;">
         <div class="hud-text-group">
             <div id="timer" class="hud-element">00:00</div>
-            <div id="spray-counter" class="hud-element">SPRAYS: 50</div>
+            <div id="spray-counter" class="hud-element">SPRAYS: 100</div>
             <div id="word-counter" class="hud-element">PALABRAS: 0/0</div>
         </div>
         <div class="hud-bar-group">
@@ -556,7 +558,7 @@
                     As you walk through an industrial park at night, you kick a can of spray paint, pick it up, take two steps, and fall through solid concrete, noclipping into something vast. Endless buzzing hallways, moist carpet, no sky. Just yellow.
                 </div>
                 <div class="lore" style="margin-top:0;">
-                    In your pocket: a spray can, a lighter, and your old Spanish <b style="color:#ffe066;">glosario</b>. Its pages tore loose in the fall and now drift through the halls as glowing vocabulary cards. Find every word, read it aloud, and each one restores your <b style="color:#ff6666;">VIDA</b>.
+                    In your pocket: a spray can, a lighter, and your old Spanish <b style="color:#ffe066;">glosario</b>. Its pages tore loose in the fall and now drift through the halls as glowing vocabulary cards. Find every word, read it aloud, and each one restores your <b style="color:#ff6666;">VIDA</b>. Restore the glosario to <b style="color:#ffe066;">100%</b> and you will <b style="color:#00ff00;">un-noclip</b>, slipping back out of the Backrooms and into reality.
                 </div>
                 <div class="hint">Tap anywhere to continue...</div>
             </div>
@@ -597,7 +599,7 @@
                 <div style="text-align:left;background:rgba(0,0,0,0.4);padding:12px 15px;border-radius:8px;border-left:3px solid #00ff00;width:100%;box-sizing:border-box;">
                     <strong style="color:#00ff00;">THE WAY OUT</strong><br>
                     <span style="color:#ccc;font-size:0.92em;line-height:1.6;">
-                        There is no door. Recover every page of your glosario and you will noclip back to reality. If your VIDA runs out, you simply wake up and keep going.
+                        There is no door. Restore your glosario to 100% (every last page) and you will un-noclip and land back in reality. If your VIDA runs out, you simply wake up and keep going.
                     </span>
                 </div>
                 <button class="choice-btn" style="margin-top:16px;border-color:rgba(180,180,180,0.3);color:#777;font-size:0.85em;" onclick="showPage(1)">&larr; BACK</button>
@@ -760,9 +762,9 @@
 <script>
 // ─── CONFIG (GLOSARIO: ONE MAP) ──────────────────────────────────────────────
 let currentSanity     = 'GLOSARIO';
-let MAP_SIZE          = 500;      // between SANE (316) and QUESTIONABLE (707)
-let SPAWN_GRID_X      = 250;
-let SPAWN_GRID_Z      = 250;
+let MAP_SIZE          = 400;      // between SANE (316) and QUESTIONABLE (707)
+let SPAWN_GRID_X      = 200;
+let SPAWN_GRID_Z      = 200;
 let EXIT_COUNT        = 0;
 
 const TILE_SIZE       = 20;
@@ -778,9 +780,9 @@ const ITEM_PICKUP_DIST   = 25;     // paint cans
 const VOCAB_PICKUP_DIST  = 12;     // vocabulary cards
 const VOCAB_HEAL         = 10;     // VIDA restored per word
 const VOCAB_LABEL_DIST   = 45;
-const DMG_SCALE          = 0.45;   // entities hit softer than the original game
-let PAINT_COUNT          = 45;
-let ENTITY_COUNT         = 70;     // sparse
+const DMG_SCALE          = 1.0;
+let PAINT_COUNT          = 300;
+let ENTITY_COUNT         = 200;
 
 let lookSensitivity = 2.0;
 let vibrationEnabled = true;
@@ -1918,7 +1920,7 @@ let instancedWalls, floor, ceil;
 let itemData = []; 
 let entities = [];
 
-let spraysLeft    = 50;
+let spraysLeft    = 100;
 let unlimitedPaint = false;
 let hasSeenPaintAdThisRound = false;
 let hasDeclinedPaintAd = false; // suppress prompt after 'no'
@@ -2899,12 +2901,12 @@ let ambientEventTimer = 90 + Math.random() * 60; // First ambient event 90-150s 
 let ambientEventCount = 0;
 let lastDoorSlamTime = 0; // slam blocked for first 270s (4.5 min) of game
 // Encounter + dynamic spawn manager
-let encounterTimer = 70 + Math.random() * 30; // First encounter 25-40s in
+let encounterTimer = 25 + Math.random() * 15; // First encounter 25-40s in
 let lastEncounterTime = 0;
 let encounterTypes = ['bacteria_investigate','smiler_appear','bacteria_stalk','smiler_stalk','bacteria_hunt','bacteria_investigate','smiler_appear','bacteria_hunt','smiler_stalk','bacteria_stalk'];
 let encounterIndex = 0;
 // Dynamic spawn — new entity near player every 45-90s
-let dynamicSpawnTimer = 120 + Math.random() * 90;
+let dynamicSpawnTimer = 45 + Math.random() * 45;
 
 // ─── SPRAY PAINT & FLAMETHROWER ───────────────────────────────────────────
 const raycaster = new THREE.Raycaster();
@@ -3050,7 +3052,7 @@ function sprayWall() {
         
         if (!unlimitedPaint) {
             spraysLeft--;
-            sprayCounterEl.innerText = `SPRAYS: ${spraysLeft}`;
+            sprayCounterEl.innerText = `SPRAYS: ${Math.ceil(spraysLeft)}`;
         }
     }
 }
@@ -3261,16 +3263,27 @@ function placeFurniture() {
         obj.scale.setScalar(scale);
         obj.position.set(wx, 0, wz);
         obj.rotation.y = Math.random()*Math.PI*2;
-        scene.add(obj);
-        furnitureObjects.push({group:obj, wx, wz, radius: obj.colliderRadius * scale});
+        furnitureObjects.push({group:obj, wx, wz, radius: obj.colliderRadius * scale, inScene:false});
         placed++;
     }
+    furnitureHash = new Map();
+    for (const f of furnitureObjects) {
+        const k = Math.floor((f.wx+4000)/20)*1000 + Math.floor((f.wz+4000)/20);
+        let a = furnitureHash.get(k); if (!a) { a=[]; furnitureHash.set(k,a); } a.push(f);
+    }
 }
+let furnitureHash = new Map();
 // Furniture collision — called in checkCollision
 function checkFurnitureCollision(pos) {
-    for (let f of furnitureObjects) {
-        const dx=pos.x-f.wx, dz=pos.z-f.wz;
-        if (Math.sqrt(dx*dx+dz*dz) < f.radius+PLAYER_SIZE) return true;
+    const cx = Math.floor((pos.x+4000)/20), cz = Math.floor((pos.z+4000)/20);
+    for (let ix=cx-1; ix<=cx+1; ix++) for (let iz=cz-1; iz<=cz+1; iz++) {
+        const a = furnitureHash.get(ix*1000+iz);
+        if (!a) continue;
+        for (let i=0; i<a.length; i++) {
+            const f = a[i];
+            const dx=pos.x-f.wx, dz=pos.z-f.wz, r=f.radius+PLAYER_SIZE;
+            if (dx*dx+dz*dz < r*r) return true;
+        }
     }
     return false;
 }
@@ -3286,38 +3299,61 @@ function placeItems() {
         const j = Math.floor(Math.random() * (i + 1));
         [order[i], order[j]] = [order[j], order[i]];
     }
-    let placed = 0, attempts = 0;
-    while (placed < order.length && attempts < order.length * 40) {
-        attempts++;
-        const gx = Math.floor(Math.random()*(MAP_SIZE-2))+1;
-        const gz = Math.floor(Math.random()*(MAP_SIZE-2))+1;
-        if (grid[gx][gz] !== 0 || (Math.abs(gx-SPAWN_GRID_X)<4 && Math.abs(gz-SPAWN_GRID_Z)<4)) continue;
+    // Evenly spread: split the map into a grid of strata and drop one item per stratum
+    // (inset from the stratum edges so no two items end up side by side).
+    function spreadCells(count, spawnClear) {
+        const n = Math.ceil(Math.sqrt(count));
+        const size = (MAP_SIZE - 2) / n;
+        const inset = Math.min(2, Math.floor(size / 4));
+        const strata = [];
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) strata.push([i, j]);
+        for (let i = strata.length - 1; i > 0; i--) {
+            const k = Math.floor(Math.random() * (i + 1));
+            [strata[i], strata[k]] = [strata[k], strata[i]];
+        }
+        const cells = [], used = new Set();
+        const ok = (gx, gz) => gx>=1 && gz>=1 && gx<MAP_SIZE-1 && gz<MAP_SIZE-1 && grid[gx][gz]===0 &&
+            !(Math.abs(gx-SPAWN_GRID_X)<spawnClear && Math.abs(gz-SPAWN_GRID_Z)<spawnClear) && !used.has(gx*4096+gz);
+        for (const [i, j] of strata) {
+            if (cells.length >= count) break;
+            const x0 = 1 + Math.floor(i*size) + inset, x1 = 1 + Math.floor((i+1)*size) - inset;
+            const z0 = 1 + Math.floor(j*size) + inset, z1 = 1 + Math.floor((j+1)*size) - inset;
+            for (let t = 0; t < 40; t++) {
+                const gx = x0 + Math.floor(Math.random()*Math.max(1, x1-x0));
+                const gz = z0 + Math.floor(Math.random()*Math.max(1, z1-z0));
+                if (ok(gx, gz)) { cells.push([gx, gz]); used.add(gx*4096+gz); break; }
+            }
+        }
+        // Rare fallback so every card exists even if a stratum was solid wall
+        let guard = 0;
+        while (cells.length < count && guard++ < count * 200) {
+            const gx = 1 + Math.floor(Math.random()*(MAP_SIZE-2)), gz = 1 + Math.floor(Math.random()*(MAP_SIZE-2));
+            if (ok(gx, gz)) { cells.push([gx, gz]); used.add(gx*4096+gz); }
+        }
+        return cells;
+    }
+
+    const vCells = spreadCells(order.length, 4);
+    for (let k = 0; k < vCells.length; k++) {
+        const [gx, gz] = vCells[k];
         const wx = (gx - MAP_SIZE/2)*TILE_SIZE + TILE_SIZE/2 + (Math.random()-0.5)*6;
         const wz = (gz - MAP_SIZE/2)*TILE_SIZE + TILE_SIZE/2 + (Math.random()-0.5)*6;
-        const vi = order[placed];
+        const vi = order[k];
         const group = new THREE.Group();
         group.position.set(wx, 0, wz);
         const sprite = new THREE.Sprite(getVocabMaterial(VOCAB[vi]));
         sprite.scale.set(5.5, 5.5, 1);
         sprite.position.y = 5;
         group.add(sprite);
-        scene.add(group);
-        itemData.push({ group, sprite, label: null, wx, wz, type: 'vocab', vi, collected: false, bobOffset: Math.random() * Math.PI * 2 });
-        placed++;
+        itemData.push({ group, sprite, label: null, wx, wz, type: 'vocab', vi, collected: false, inScene: false, bobOffset: Math.random() * Math.PI * 2 });
     }
 
-    placed = 0; attempts = 0;
-    while (placed < PAINT_COUNT && attempts < PAINT_COUNT * 20) {
-        attempts++;
-        const gx = Math.floor(Math.random()*(MAP_SIZE-2))+1;
-        const gz = Math.floor(Math.random()*(MAP_SIZE-2))+1;
-        if (grid[gx][gz] !== 0 || (Math.abs(gx-SPAWN_GRID_X)<6 && Math.abs(gz-SPAWN_GRID_Z)<6)) continue;
+    const pCells = spreadCells(PAINT_COUNT, 6);
+    for (const [gx, gz] of pCells) {
         const wx = (gx - MAP_SIZE/2)*TILE_SIZE + TILE_SIZE/2 + (Math.random()-0.5)*8;
         const wz = (gz - MAP_SIZE/2)*TILE_SIZE + TILE_SIZE/2 + (Math.random()-0.5)*8;
         const mesh = makePaintCan(); mesh.scale.setScalar(1.2); mesh.position.set(wx, 0, wz); mesh.rotation.y = Math.random()*Math.PI;
-        scene.add(mesh);
-        itemData.push({ group: mesh, wx, wz, type: 'paint', collected: false, bobOffset: Math.random() * Math.PI * 2 });
-        placed++;
+        itemData.push({ group: mesh, wx, wz, type: 'paint', collected: false, inScene: false, bobOffset: Math.random() * Math.PI * 2 });
     }
 }
 
@@ -3883,7 +3919,7 @@ function checkItemPickups(){
         if(b.collected) continue;
         const dx = px - b.wx, dz = pz - b.wz;
         if (Math.abs(dx) > 80 || Math.abs(dz) > 80) {
-            if (b.label && b.label.visible) b.label.visible = false;
+            if (b.label) { if (b.label.material.map) b.label.material.map.dispose(); b.label.material.dispose(); b.group.remove(b.label); b.label = null; }
             continue;
         }
         const d = Math.hypot(dx, dz);
@@ -3905,8 +3941,8 @@ function checkItemPickups(){
             if (Math.abs(dx) < ITEM_PICKUP_DIST && Math.abs(dz) < ITEM_PICKUP_DIST) {
                 b.collected = true; scene.remove(b.group);
                 if (!unlimitedPaint) {
-                    spraysLeft = 50;
-                    sprayCounterEl.innerText = `SPRAYS: ${spraysLeft}`;
+                    spraysLeft = 100;
+                    sprayCounterEl.innerText = `SPRAYS: ${Math.ceil(spraysLeft)}`;
                 }
                 showPickupFlash('Paint Refilled!', '#ff4444');
                 updateStatusBars();
@@ -4084,6 +4120,7 @@ document.addEventListener('keyup',e=>{
 // ─── PHYSICS & GAME LOOP ───────────────────────────────────────────────────
 const playerCollider = new THREE.Box3();
 let prevTime = performance.now();
+let cullFrame = 0;
 const velocity = new THREE.Vector3();
 
 function checkCollision(targetPosition) {
@@ -4166,7 +4203,7 @@ function animate() {
 
         // Stamina Sprint Drain & Recharge Logic
         if (isSprinting) {
-            stamina -= (100 / 7) * delta; // Fully drain 100 over 7 seconds
+            stamina -= (100 / 14) * delta; // Fully drain 100 over 14 seconds
             if (stamina <= 0) {
                 stamina = 0;
                 isSprinting = false;
@@ -4174,7 +4211,7 @@ function animate() {
             }
         } else {
             if (stamina < STAT_MAX) {
-                stamina += (100 / 14) * delta; // Fully recharge 100 over 14 seconds
+                stamina += (100 / 7) * delta; // Fully recharge 100 over 7 seconds
                 if (stamina > STAT_MAX) stamina = STAT_MAX;
             }
             if (isSprintTriggered && stamina >= STAT_MAX) {
@@ -4215,19 +4252,19 @@ function animate() {
         const pz = camera.position.z;
 
         // ── Visibility culling — hide distant objects every 3 frames ──────
-        if (Math.floor(time / 16) % 3 === 0) {
-            const CULL_DIST = 220;
+        if ((cullFrame++ % 3) === 0) {
+            const CULL_DIST = 240;
             for (let i=0; i<itemData.length; i++) {
                 const it = itemData[i];
                 if (!it.collected) {
                     const vis = Math.abs(px-it.wx)<CULL_DIST && Math.abs(pz-it.wz)<CULL_DIST;
-                    if (it.group.visible !== vis) it.group.visible = vis;
+                    if (vis !== it.inScene) { if (vis) scene.add(it.group); else scene.remove(it.group); it.inScene = vis; }
                 }
             }
             for (let i=0; i<furnitureObjects.length; i++) {
                 const f = furnitureObjects[i];
                 const vis = Math.abs(px-f.wx)<CULL_DIST && Math.abs(pz-f.wz)<CULL_DIST;
-                if (f.group.visible !== vis) f.group.visible = vis;
+                if (vis !== f.inScene) { if (vis) scene.add(f.group); else scene.remove(f.group); f.inScene = vis; }
             }
         }
 
@@ -4352,8 +4389,8 @@ function animate() {
                     }
 
                     if (!unlimitedPaint) {
-                        spraysLeft--;
-                        sprayCounterEl.innerText = `SPRAYS: ${spraysLeft}`;
+                        spraysLeft = Math.max(0, spraysLeft - 0.5); // flame drains half as fast
+                        sprayCounterEl.innerText = `SPRAYS: ${Math.ceil(spraysLeft)}`;
                     }
                 }
             }
@@ -4367,7 +4404,7 @@ function animate() {
         // Process Mist & Fire particles
         for(let i=fireParticles.length-1; i>=0; i--) {
             let p = fireParticles[i]; p.life -= delta;
-            if(p.life <= 0) { scene.remove(p.mesh); fireParticles.splice(i,1); }
+            if(p.life <= 0) { scene.remove(p.mesh); if (p.mesh.material) p.mesh.material.dispose(); fireParticles.splice(i,1); }
             else { 
                 p.mesh.position.add(p.vel.clone().multiplyScalar(delta)); 
                 p.mesh.material.opacity = p.life/0.3; 
@@ -4404,8 +4441,8 @@ function animate() {
         }
         // ── Dynamic entity spawn — fresh entity near player every 45-90s ──
         dynamicSpawnTimer -= delta;
-        if (dynamicSpawnTimer <= 0 && entities.length < ENTITY_COUNT + 15) {
-            dynamicSpawnTimer = 120 + Math.random() * 90;
+        if (dynamicSpawnTimer <= 0) {
+            dynamicSpawnTimer = 45 + Math.random() * 45;
             // Pick random open cell 80-200 units from player, out of direct line of sight
             const pGX = Math.floor((_cx));
             const pGZ = Math.floor((_cz));
@@ -4461,7 +4498,7 @@ function animate() {
                     hasVanishedOnce: false,
                     erraticTimer: 0, erraticVelX: 0, erraticVelZ: 0,
                     twitchTimer: 0, observeAngle: Math.random()*Math.PI*2,
-                    hp: 0.5,
+                    hp: 2.0,
                 });
                 // dynamic spawn — sound plays on first damage contact only
             }
@@ -4469,7 +4506,7 @@ function animate() {
         // ── Guaranteed encounter manager — at least one every 90s ────
         encounterTimer -= delta;
         if(encounterTimer <= 0) {
-            encounterTimer = 160 + Math.random() * 60; // Reset: next in 75-105s
+            encounterTimer = 75 + Math.random() * 30; // Reset: next in 75-105s
             // Pick next encounter type in rotating order with shuffle
             const etype = encounterTypes[encounterIndex % encounterTypes.length];
             encounterIndex++;
@@ -4770,7 +4807,7 @@ function animate() {
                     // Rare but punishing — wide damage window
                     if (dist > ENTITY_MIN_DIST) {
                         const dir2 = new THREE.Vector3(dx, 0, dz).normalize();
-                        const spd = 75;
+                        const spd = 130;
                         const nx2 = e.mesh.position.x + dir2.x * spd * delta;
                         const nz2 = e.mesh.position.z + dir2.z * spd * delta;
                         if (!checkEntityCollision({x: nx2, z: e.mesh.position.z})) e.mesh.position.x = nx2;
@@ -4828,7 +4865,7 @@ function animate() {
                 // ── BACTERIA STATE MACHINE ──────────────────────────────
                 if (e.state === 'idle') {
                     // Always investigating — bacteria are never truly passive
-                    if (dist < 220) {
+                    if (dist < 400) {
                         e.state = 'investigating';
                         e.interestTimer = 1 + Math.random() * 2;
                         e.lastKnownPlayerX = px;
@@ -4964,7 +5001,7 @@ function animate() {
                     // Desperate charge — fast enough to catch a walking player
                     if (!isTwitching && dist > ENTITY_MIN_DIST) {
                         const dir2 = new THREE.Vector3(dx, 0, dz).normalize();
-                        const spd = 40; // was 72 — slowed down
+                        const spd = 54;
                         const nx2 = e.mesh.position.x + dir2.x * spd * delta;
                         const nz2 = e.mesh.position.z + dir2.z * spd * delta;
                         if (!checkEntityCollision({x: nx2, z: e.mesh.position.z})) e.mesh.position.x = nx2;
@@ -5034,7 +5071,7 @@ function animate() {
                     // Full sprint frenzy — faster than sprinting player
                     if (dist > ENTITY_MIN_DIST) {
                         const dir2 = new THREE.Vector3(dx, 0, dz).normalize();
-                        const spd = 55; // was 105, slowed down
+                        const spd = 82;
                         const nx2 = e.mesh.position.x + dir2.x * spd * delta;
                         const nz2 = e.mesh.position.z + dir2.z * spd * delta;
                         if (!checkEntityCollision({x: nx2, z: e.mesh.position.z})) e.mesh.position.x = nx2;
@@ -5330,7 +5367,7 @@ function restoreSave(d){
     if (Number.isFinite(d.health)) health = Math.max(1, Math.min(STAT_MAX, d.health));
     if (Number.isFinite(d.sprays)) spraysLeft = d.sprays;
     if (Number.isFinite(d.elapsed)) elapsed = d.elapsed;
-    sprayCounterEl.innerText = `SPRAYS: ${spraysLeft}`;
+    sprayCounterEl.innerText = `SPRAYS: ${Math.ceil(spraysLeft)}`;
     for (const i of d.collected) {
         const it = itemData[i];
         if (it && !it.collected) { it.collected = true; scene.remove(it.group); }
