@@ -4381,7 +4381,7 @@ function animate() {
                             if((dirToEnt.dot(camDir) > 0.70 || dist < 14) && !e.burning) { // wider cone; no min range when in face
                                 // Kill time: ~0.17s of sustained flame (hp=0.5, drain=2.9/s)
                                 if (e.hp === undefined) e.hp = 0.5;
-                                e.hp -= delta * 2.9;
+                                e.hp -= 0.1 * 2.9; // this block runs once per 0.1s tick, so use the tick length (not frame delta)
                                 if (e.hp <= 0 && !e.burning) {
                                     // Start burn death — entity stays visible, on fire, for ~0.8s
                                     e.burning = true;
@@ -4399,7 +4399,7 @@ function animate() {
                             }
                         } else if (e.hp !== undefined && e.hp < 1.0 && !e.burning) {
                             // Out of flame — hp recovers slowly
-                            e.hp = Math.min(0.5, e.hp + delta * 0.8);
+                            e.hp = Math.min(0.5, e.hp + 0.1 * 0.8);
                         }
                     }
 
