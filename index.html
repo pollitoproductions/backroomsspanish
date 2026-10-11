@@ -3009,6 +3009,24 @@ function toggleAutoWalk() {
     }
 }
 
+// Spray marks are remembered (and saved) so they can be used to find your way around.
+const sprayMarks = [];            // flat records: [x, y, z, nx, ny, nz]
+const MAX_SPRAY_MARKS = 1500;
+let sprayMarkGeo = null, sprayMarkMat = null;
+const sprayMarkMeshes = [];
+function addSprayMark(x, y, z, nx, ny, nz, fromSave) {
+    if (!sprayMarkGeo) {
+        sprayMarkGeo = new THREE.PlaneGeometry(6,6);
+        sprayMarkMat = new THREE.MeshBasicMaterial({map:sprayTexture,transparent:true,depthWrite:false,color:0xffffff});
+    }
+    const mesh = new THREE.Mesh(sprayMarkGeo, sprayMarkMat);
+    mesh.position.set(x, y, z);
+    mesh.lookAt(x + nx, y + ny, z + nz);
+    scene.add(mesh);
+    sprayMarkMeshes.push(mesh);
+    sprayMarks.push([+x.toFixed(2), +y.toFixed(2), +z.toFixed(2), +nx.toFixed(2), +ny.toFixed(2), +nz.toFixed(2)]);
+    if (sprayMarks.length > MAX_SPRAY_MARKS) { sprayMarks.shift(); scene.remove(sprayMarkMeshes.shift()); } // oldest fades away
+}
 function sprayWall() {
     if (!unlimitedPaint && spraysLeft <= 0) return;
     if (Date.now()-lastSprayTime<300) return; 
@@ -3019,9 +3037,6 @@ function sprayWall() {
     if (hits.length > 0 && hits[0].distance < 15) {
         lastSprayTime=Date.now();
         const hit = hits[0];
-        const g = new THREE.PlaneGeometry(6,6);
-        const m = new THREE.MeshBasicMaterial({map:sprayTexture,transparent:true,depthWrite:false,color:0xffffff});
-        const mesh = new THREE.Mesh(g,m);
         // Clamp spray position to stay within wall tile — avoid edge overflow
         const sprayPos = hit.point.clone().add(hit.face.normal.clone().multiplyScalar(0.05));
         const norm = hit.face.normal;
@@ -3034,9 +3049,7 @@ function sprayWall() {
             sprayPos.z = Math.max(tileZ - TILE_SIZE/2 + MARGIN, Math.min(tileZ + TILE_SIZE/2 - MARGIN, sprayPos.z));
         }
         sprayPos.y = Math.max(MARGIN, Math.min(WALL_HEIGHT - MARGIN, sprayPos.y));
-        mesh.position.copy(sprayPos);
-        mesh.lookAt(sprayPos.clone().add(norm));
-        scene.add(mesh);
+        addSprayMark(sprayPos.x, sprayPos.y, sprayPos.z, norm.x, norm.y, norm.z);
         
         playSprayHiss();
 
@@ -5347,7 +5360,7 @@ function saveGame(){
             version: 1, seed: worldSeed,
             x: camera.position.x, z: camera.position.z, yaw, pitch,
             health, sprays: spraysLeft, elapsed,
-            collected,
+            collected, marks: sprayMarks,
             inventory: Array.from(inventoryMap.entries()).map(([es, en]) => [es, en.qty])
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -5369,6 +5382,7 @@ function restoreSave(d){
     if (Number.isFinite(d.health)) health = Math.max(1, Math.min(STAT_MAX, d.health));
     if (Number.isFinite(d.sprays)) spraysLeft = d.sprays;
     if (Number.isFinite(d.elapsed)) elapsed = d.elapsed;
+    if (Array.isArray(d.marks)) for (const m of d.marks) { if (Array.isArray(m) && m.length === 6 && m.every(Number.isFinite)) addSprayMark(m[0],m[1],m[2],m[3],m[4],m[5]); }
     sprayCounterEl.innerText = `SPRAYS: ${Math.ceil(spraysLeft)}`;
     for (const i of d.collected) {
         const it = itemData[i];
