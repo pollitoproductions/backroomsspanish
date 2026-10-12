@@ -578,8 +578,9 @@
                 <div style="text-align:left;background:rgba(0,0,0,0.4);padding:12px 15px;border-radius:8px;border-left:3px solid #ffffff;margin-bottom:10px;width:100%;box-sizing:border-box;">
                     <strong style="color:#fff;">MOVE</strong><br>
                     <span style="color:#ccc;font-size:0.92em;line-height:1.6;">
-                        Left thumb joystick to walk, drag the right side to look (WASD + arrows on keyboard).<br>
-                        <strong style="color:#fff;">Sprint</strong> boosts speed (watch the ring). The <strong style="color:#00ff88;">walk button</strong> locks you moving forward.
+                        Left thumb joystick to walk, drag the right side to look.<br>
+                        <strong style="color:#fff;">Sprint</strong> boosts speed (watch the ring). The <strong style="color:#00ff88;">walk button</strong> locks you moving forward.<br>
+                        <strong style="color:#fff;">Keyboard:</strong> <b>W A S D</b> walk &middot; <b>arrow keys</b> or mouse look &middot; <b>Shift</b> sprint &middot; <b>Q</b> auto-walk (any move key stops it) &middot; <b>Space</b> or click: tap to tag a wall, hold for flame &middot; <b>Ctrl+click</b> instant tag &middot; <b>M</b> menu.
                     </span>
                 </div>
                 <div style="text-align:left;background:rgba(0,0,0,0.4);padding:12px 15px;border-radius:8px;border-left:3px solid #ffe066;margin-bottom:10px;width:100%;box-sizing:border-box;">
@@ -594,6 +595,12 @@
                     <span style="color:#ccc;font-size:0.92em;line-height:1.6;">
                         Hold the spray button to burn anything that gets close. Entities are rare and go down fast.<br>
                         Tap it near a wall to tag it. <strong style="color:#ff6666;">Red cans</strong> add 100 paint each (you can hold up to 1000).
+                    </span>
+                </div>
+                <div style="text-align:left;background:rgba(0,0,0,0.4);padding:12px 15px;border-radius:8px;border-left:3px solid #ff8844;margin-bottom:10px;width:100%;box-sizing:border-box;">
+                    <strong style="color:#ff8844;">MARK YOUR PATH</strong><br>
+                    <span style="color:#ccc;font-size:0.92em;line-height:1.6;">
+                        The halls all look the same, so tag the walls to remember where you have been: mark junctions, dead ends, and every spot where you picked up a card. Your last <b>2000</b> marks are saved with your game, so they will still be there when you come back. Leave two marks near a card you found so you can spot the area again.
                     </span>
                 </div>
                 <div style="text-align:left;background:rgba(0,0,0,0.4);padding:12px 15px;border-radius:8px;border-left:3px solid #00ff00;width:100%;box-sizing:border-box;">
@@ -3011,7 +3018,7 @@ function toggleAutoWalk() {
 
 // Spray marks are remembered (and saved) so they can be used to find your way around.
 const sprayMarks = [];            // flat records: [x, y, z, nx, ny, nz]
-const MAX_SPRAY_MARKS = 1500;
+const MAX_SPRAY_MARKS = 2000;
 let sprayMarkGeo = null, sprayMarkMat = null;
 const sprayMarkMeshes = [];
 function addSprayMark(x, y, z, nx, ny, nz, fromSave) {
@@ -4111,6 +4118,9 @@ document.addEventListener('keydown',e=>{
             break;
         case 'ShiftLeft': case 'ShiftRight':
             activateSprint();
+            break;
+        case 'KeyQ':
+            toggleAutoWalk();
             break;
 
         case 'Escape': pauseGame(); break;
