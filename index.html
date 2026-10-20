@@ -3964,6 +3964,18 @@ function speakWord(text){
     } catch(e){ /* speech is a bonus — never break the game */ }
 }
 
+// "Hear it" button: appears while a card is near enough that its label is
+// showing — the same find-a-card moment as the planet game's button.
+// Collection here is walk-over, so the window can be brief on foot.
+const speakBtn=document.createElement('button');
+speakBtn.type='button';
+speakBtn.textContent='🔊 Escuchar';
+speakBtn.setAttribute('aria-label','Escuchar la palabra / Hear the word aloud');
+speakBtn.style.cssText='position:fixed;bottom:calc(50% - 64px);left:50%;transform:translateX(-50%);background:rgba(24,22,4,0.88);color:#ffe066;padding:9px 18px;border-radius:20px;font-size:0.85rem;letter-spacing:0.04em;z-index:21;display:none;border:1px solid rgba(230,225,120,0.55);cursor:pointer;font-family:inherit;';
+document.body.appendChild(speakBtn);
+let nearestVocabItem=null;
+speakBtn.addEventListener('click',e=>{ e.stopPropagation(); if(nearestVocabItem) speakWord(VOCAB[nearestVocabItem.vi].es); });
+
 let pickupFlashTimer=0;
 function showPickupFlash(text, color){
     pickupFlash.style.fontSize = '16px';
@@ -4004,6 +4016,7 @@ function collectVocab(item){
 
 function checkItemPickups(){
     const px=camera.position.x, pz=camera.position.z;
+    let nearest=null, nearestD=Infinity;
     for(let i=0; i<itemData.length; i++){
         const b = itemData[i];
         if(b.collected) continue;
@@ -4015,6 +4028,7 @@ function checkItemPickups(){
         const d = Math.hypot(dx, dz);
         if (b.type === 'vocab') {
             if (d <= VOCAB_LABEL_DIST) {
+                if (d < nearestD) { nearest = b; nearestD = d; }
                 if (!b.label) {
                     b.label = new THREE.Sprite(new THREE.SpriteMaterial({map:makeLabelSprite(VOCAB[b.vi]),transparent:true,depthWrite:false,fog:false,opacity:1}));
                     b.label.scale.set(15, 4.03, 1);
@@ -4039,6 +4053,8 @@ function checkItemPickups(){
             }
         }
     }
+    nearestVocabItem = nearest;
+    speakBtn.style.display = (nearest && pronEnabled) ? 'block' : 'none';
 }
 
 // ─── CONTROLS (INCLUDES CONTINUOUS FIRE LOGIC) ─────────────────────────────
@@ -5548,6 +5564,7 @@ function setPronunciation(on){
     const t = document.getElementById('toggle-pronunciation');
     if (t) t.checked = !!on;
     if (!on && 'speechSynthesis' in window){ try { speechSynthesis.cancel(); } catch(e){} }
+    if (!on) speakBtn.style.display='none';
     if (on) speakWord('hola');
 }
 document.getElementById('setting-pron-btn').addEventListener('click', e => { e.stopPropagation(); setPronunciation(!pronEnabled); });
