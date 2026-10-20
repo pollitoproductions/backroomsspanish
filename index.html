@@ -266,6 +266,13 @@
             background-color: rgba(255,0,0,0.4);
             opacity: 0; transition: opacity 0.1s;
         }
+        #dmg-dir {
+            position: absolute; top:0; left:0; width:64px; height:64px;
+            pointer-events: none; z-index: 11;
+            color:#ff2a2a; font-size:42px; line-height:64px; text-align:center;
+            text-shadow: 0 0 14px #ff0000, 0 2px 4px #000;
+            opacity: 0; transition: opacity 0.12s;
+        }
         #pickup-flash {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -300%);
@@ -448,6 +455,7 @@
 <canvas id="game-canvas"></canvas>
 <div id="thirst-vignette"></div>
 <div id="damage-flash"></div>
+<div id="dmg-dir">&#9650;</div>
 
 <div id="ui-layer">
     <div id="top-hud" style="display:none;">
@@ -3777,6 +3785,9 @@ const healthBar    = document.getElementById('health-bar');
 
 const vignetteEl   = document.getElementById('thirst-vignette');
 const dmgFlashEl   = document.getElementById('damage-flash');
+const dmgDirEl     = document.getElementById('dmg-dir');
+const _dv = new THREE.Vector3();
+const _dq = new THREE.Quaternion();
 const pickupFlash  = document.getElementById('pickup-flash');
 const sprayBtn     = document.getElementById('spray-btn');
 const sprintBtn    = document.getElementById('sprint-btn');
@@ -3890,7 +3901,7 @@ function showWinScreen(){
 
 function showDeathScreen(title, lore){
     if (isDead) return;
-    isDead = true; isPaused = true;
+    isDead = true; isPaused = true; dmgDirEl.style.opacity = '0';
     stopAction();
     if (document.pointerLockElement) document.exitPointerLock();
     if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
@@ -4677,6 +4688,7 @@ function animate() {
         }
 
         let tookDamage = false; const _hpBefore = health;
+        let dmgSrcX = 0, dmgSrcZ = 0, dmgHasSrc = false; // directional hit indicator: attacker position
         
         // Estimate ambient light level at camera position (used by Smilers)
         // _cx/_cz declared at top of loop — see below
@@ -4925,6 +4937,7 @@ function animate() {
                     if (dist < 42) { // wider than before — 42 not 25
                         if (hasLineOfSight(camera.position.x, camera.position.z, e.mesh.position.x, e.mesh.position.z)) {
                             health -= 9 * DMG_SCALE * delta;
+                            dmgSrcX = e.mesh.position.x; dmgSrcZ = e.mesh.position.z; dmgHasSrc = true;
                         if (!tookDamage && vibrationEnabled && navigator.vibrate) navigator.vibrate(80);
                         tookDamage = true;
                         if (health <= 0) showDeathScreen("TE DESMAYASTE.", "Everything goes quiet for a moment.");
@@ -5006,6 +5019,7 @@ function animate() {
                         }
                         if (hasLineOfSight(camera.position.x, camera.position.z, e.mesh.position.x, e.mesh.position.z)) {
                             health -= 4.5 * DMG_SCALE * delta;
+                            dmgSrcX = e.mesh.position.x; dmgSrcZ = e.mesh.position.z; dmgHasSrc = true;
                         if (!tookDamage && vibrationEnabled && navigator.vibrate) navigator.vibrate(40);
                         tookDamage = true;
                         if (health <= 0) showDeathScreen("TE DESMAYASTE.", "Everything goes quiet for a moment.");
@@ -5128,6 +5142,7 @@ function animate() {
                     if (dist < 35) {
                         if (hasLineOfSight(camera.position.x, camera.position.z, e.mesh.position.x, e.mesh.position.z)) {
                             health -= 6 * DMG_SCALE * delta;
+                            dmgSrcX = e.mesh.position.x; dmgSrcZ = e.mesh.position.z; dmgHasSrc = true;
                         if (!tookDamage && vibrationEnabled && navigator.vibrate) navigator.vibrate(60);
                         tookDamage = true;
                         if (health <= 0) showDeathScreen("TE DESMAYASTE.", "Everything goes quiet for a moment.");
@@ -5189,6 +5204,7 @@ function animate() {
                     if (dist < 40) { // wider damage window — 40 not 25
                         if (hasLineOfSight(camera.position.x, camera.position.z, e.mesh.position.x, e.mesh.position.z)) {
                             health -= 12 * DMG_SCALE * delta;
+                            dmgSrcX = e.mesh.position.x; dmgSrcZ = e.mesh.position.z; dmgHasSrc = true;
                         if (!tookDamage && vibrationEnabled && navigator.vibrate) navigator.vibrate(70);
                         tookDamage = true;
                         if (health <= 0) showDeathScreen("TE DESMAYASTE.", "Everything goes quiet for a moment.");
@@ -5218,6 +5234,7 @@ function animate() {
                             else playSmilerLaugh(1.0);
                         }
                         health -= dmgRate * DMG_SCALE * delta;
+                            dmgSrcX = e.mesh.position.x; dmgSrcZ = e.mesh.position.z; dmgHasSrc = true;
                         if (!tookDamage && vibrationEnabled && navigator.vibrate) navigator.vibrate(30);
                         tookDamage = true;
                         if (health <= 0) showDeathScreen("TE DESMAYASTE.", "Everything goes quiet for a moment.");
@@ -5232,6 +5249,19 @@ function animate() {
 
         if (invulnTimer > 0) { health = Math.max(health, _hpBefore); tookDamage = false; }
         dmgFlashEl.style.opacity = tookDamage ? '1' : '0';
+        // Directional damage indicator — red arrow on the screen edge points at the attacker (from Backrooms Breakout v11)
+        if (tookDamage && dmgHasSrc) {
+            _dv.set(dmgSrcX - camera.position.x, 0, dmgSrcZ - camera.position.z);
+            _dv.applyQuaternion(_dq.copy(camera.quaternion).invert());
+            const dang = Math.atan2(_dv.x, -_dv.z); // 0 = ahead, PI = directly behind
+            const dR = Math.min(window.innerWidth, window.innerHeight) * 0.30;
+            dmgDirEl.style.left = (window.innerWidth / 2 + Math.sin(dang) * dR) + 'px';
+            dmgDirEl.style.top = (window.innerHeight / 2 - Math.cos(dang) * dR) + 'px';
+            dmgDirEl.style.transform = 'translate(-50%,-50%) rotate(' + dang + 'rad)';
+            dmgDirEl.style.opacity = '1';
+        } else {
+            dmgDirEl.style.opacity = '0';
+        }
         if(tookDamage) updateStatusBars();
 
         playerLight.position.copy(camera.position);
