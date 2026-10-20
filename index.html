@@ -427,6 +427,8 @@
         .zoom-emoji { font-size:clamp(5rem,26vw,7.5rem); line-height:1.15; margin:6px 0 10px; }
         .zoom-es { font-size:1.7rem; font-weight:800; color:rgba(255,255,225,1); letter-spacing:0.02em; }
         .zoom-qty { margin-top:8px; font-size:0.8rem; color:rgba(230,225,120,0.8); min-height:1em; }
+        .zoom-listen { margin-top:14px; padding:10px 22px; border-radius:14px; border:1px solid rgba(230,225,120,0.5); background:rgba(40,36,10,0.7); color:#ffe066; font-size:0.95rem; font-weight:700; cursor:pointer; font-family:inherit; }
+        .zoom-listen:active { background:rgba(80,72,20,0.8); }
         .zoom-hint { margin-top:16px; font-size:0.62rem; letter-spacing:0.06em; color:rgba(255,255,255,0.3); }
 
         
@@ -587,7 +589,7 @@
                 <div style="text-align:left;background:rgba(0,0,0,0.4);padding:12px 15px;border-radius:8px;border-left:3px solid #ffe066;margin-bottom:10px;width:100%;box-sizing:border-box;">
                     <strong style="color:#ffe066;">PALABRAS / WORDS</strong><br>
                     <span style="color:#ccc;font-size:0.92em;line-height:1.6;">
-                        Glowing cards float through the halls. Walk into one to collect it, then say the word aloud.<br>
+                        Glowing cards float through the halls. Walk into one to collect it &mdash; the game pronounces the word for you. Listen, then say it aloud yourself.<br>
                         Every new word restores <strong style="color:#ff6666;">VIDA</strong>. Open the <strong>MENU</strong> to see your inventory, save, or change settings.
                     </span>
                 </div>
@@ -626,6 +628,10 @@
                 <div class="setting-row">
                     <span>VIBRATION</span>
                     <button class="choice-btn" id="setting-vib-btn" style="width:auto; padding: 8px 16px; font-size:0.9em; color:#00ff00; border-color:#00ff00;">ON</button>
+                </div>
+                <div class="setting-row">
+                    <span>PRONUNCIACIÓN</span>
+                    <button class="choice-btn" id="setting-pron-btn" style="width:auto; padding: 8px 16px; font-size:0.9em; color:#00ff00; border-color:#00ff00;">ON</button>
                 </div>
                 <button class="choice-btn" style="margin-top:26px;border-color:rgba(180,180,180,0.3);color:#777;font-size:0.85em;" onclick="showPage(1)">&larr; BACK</button>
             </div>
@@ -728,6 +734,16 @@
                     <div class="toggle-thumb"></div>
                 </label>
             </div>
+            <div class="menu-item">
+                <div class="menu-item-label">Pronunciación / Pronunciation
+                    <button id="pron-test" type="button" title="Probar / Test" style="background:rgba(255,255,255,0.08);border:1px solid rgba(230,225,120,0.45);border-radius:10px;padding:4px 10px;font-size:0.85rem;cursor:pointer;color:#fff;margin-left:8px;">🔊 hola</button>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="toggle-pronunciation" checked>
+                    <div class="toggle-track"></div>
+                    <div class="toggle-thumb"></div>
+                </label>
+            </div>
         </div>
     </div>
 
@@ -761,6 +777,7 @@
         <div class="zoom-emoji" id="zoom-emoji"></div>
         <div class="zoom-es" id="zoom-es"></div>
         <div class="zoom-qty" id="zoom-qty"></div>
+        <button class="zoom-listen" id="zoom-listen" type="button">🔊 Escuchar / Listen</button>
         <div class="zoom-hint">Toca fuera para cerrar / Tap outside to close</div>
     </div>
 </div>
@@ -3906,6 +3923,47 @@ function updateStatusBars(){
     vignetteEl.style.opacity=danger>0?1:0;
 }
 
+// ── Pronunciation: read words aloud with a Spanish voice (Web Speech API) ──
+// Speaks the full Spanish form including the article ("la abeja").
+// NOTE: collecting here is walk-over (no tap), so speech is "unlocked" on the
+// player's first touch/keypress — mobile browsers block speech that isn't
+// tied to a user gesture, and the empty utterance below grants that unlock.
+let pronEnabled = true;
+try { pronEnabled = localStorage.getItem('backroomsGlosarioPron') !== '0'; } catch(e){}
+let esVoice = null;
+function pickSpanishVoice(){
+    if (!('speechSynthesis' in window)) return;
+    try {
+        const vs = speechSynthesis.getVoices().filter(v=>/^es([-_]|$)/i.test(v.lang||''));
+        // Prefer Latin American voices (classroom standard in the US), then any Spanish.
+        esVoice = vs.find(v=>/es[-_]MX/i.test(v.lang)) || vs.find(v=>/es[-_]US/i.test(v.lang)) || vs[0] || null;
+    } catch(e){ esVoice = null; }
+}
+if ('speechSynthesis' in window){
+    pickSpanishVoice();
+    if (typeof speechSynthesis.addEventListener==='function') speechSynthesis.addEventListener('voiceschanged', pickSpanishVoice);
+    else speechSynthesis.onvoiceschanged = pickSpanishVoice;
+    const unlockSpeech = () => { try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch(e){} };
+    ['pointerdown','keydown','touchend'].forEach(ev => window.addEventListener(ev, unlockSpeech, { once:true, passive:true }));
+}
+function speakWord(text){
+    if (!pronEnabled || !text) return;
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    try {
+        // Only cancel if something is actually queued: on iOS, cancel()
+        // immediately followed by speak() can drop the new utterance.
+        if (synth.speaking || synth.pending) synth.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        if (esVoice){ u.voice = esVoice; u.lang = esVoice.lang; }
+        else { u.lang = 'es-MX'; }
+        u.rate = 0.85; // slightly slow: clearer for learners
+        // NOTE: u.volume intentionally NOT set — on iOS Safari, non-1
+        // volumes can silence the utterance entirely.
+        synth.speak(u);
+    } catch(e){ /* speech is a bonus — never break the game */ }
+}
+
 let pickupFlashTimer=0;
 function showPickupFlash(text, color){
     pickupFlash.style.fontSize = '16px';
@@ -3936,6 +3994,7 @@ function collectVocab(item){
     if (had) had.qty++; else inventoryMap.set(v.es, {vocab:v, qty:1});
     health = Math.min(STAT_MAX, health + VOCAB_HEAL);
     showWordFlash(v, VOCAB_HEAL);
+    speakWord(v.es); // hear the word you just collected
     addLog(`✅ Recogiste "${v.es}" — ${v.en}`);
     if (vibrationEnabled && navigator.vibrate) navigator.vibrate(25);
     updateWordCounter();
@@ -5284,6 +5343,7 @@ function renderInventory(){
 }
 
 function closeCardZoom(){ cardZoomEl.classList.remove('open'); }
+let zoomWord = '';
 function openCardZoom(es){
     const entry = inventoryMap.get(es);
     if (!entry) return;
@@ -5292,6 +5352,8 @@ function openCardZoom(es){
     document.getElementById('zoom-es').textContent = es;
     document.getElementById('zoom-qty').textContent = entry.qty > 1 ? `×${entry.qty} recogidos / collected` : '';
     cardZoomEl.classList.add('open');
+    zoomWord = es;
+    speakWord(es); // opening a card reads it aloud
 }
 (function(){
     const grid = document.getElementById('inv-grid');
@@ -5307,6 +5369,7 @@ function openCardZoom(es){
     });
     cardZoomEl.addEventListener('click', e=>{ if (e.target===cardZoomEl) closeCardZoom(); });
     document.getElementById('zoom-close').addEventListener('click', closeCardZoom);
+    document.getElementById('zoom-listen').addEventListener('click', e=>{ e.stopPropagation(); if (zoomWord) speakWord(zoomWord); });
 })();
 
 function showPanel(id){
@@ -5477,6 +5540,26 @@ document.getElementById('toggle-vibration').addEventListener('change', function(
     setVibration(this.checked);
     if (this.checked && navigator.vibrate) navigator.vibrate(20);
 });
+function setPronunciation(on){
+    pronEnabled = !!on;
+    try { localStorage.setItem('backroomsGlosarioPron', on ? '1' : '0'); } catch(e){}
+    const b = document.getElementById('setting-pron-btn');
+    if (b) { b.innerText = on ? 'ON' : 'OFF'; b.style.color = on ? '#00ff00' : '#ff4444'; b.style.borderColor = on ? '#00ff00' : '#ff4444'; }
+    const t = document.getElementById('toggle-pronunciation');
+    if (t) t.checked = !!on;
+    if (!on && 'speechSynthesis' in window){ try { speechSynthesis.cancel(); } catch(e){} }
+    if (on) speakWord('hola');
+}
+document.getElementById('setting-pron-btn').addEventListener('click', e => { e.stopPropagation(); setPronunciation(!pronEnabled); });
+document.getElementById('toggle-pronunciation').addEventListener('change', function(){ setPronunciation(this.checked); });
+document.getElementById('pron-test').addEventListener('click', e => { e.stopPropagation(); speakWord('hola'); });
+// sync pronunciation controls with the saved setting (quietly — no speech on load)
+(function(){
+    const b = document.getElementById('setting-pron-btn');
+    if (b) { b.innerText = pronEnabled ? 'ON' : 'OFF'; b.style.color = pronEnabled ? '#00ff00' : '#ff4444'; b.style.borderColor = pronEnabled ? '#00ff00' : '#ff4444'; }
+    const t = document.getElementById('toggle-pronunciation');
+    if (t) t.checked = pronEnabled;
+})();
 try {
     const sv = localStorage.getItem('backroomsGlosarioVol');
     if (sv !== null) soundVolume = Number(sv);
