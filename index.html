@@ -448,6 +448,7 @@
 .hud-btn:active { background:rgba(110,100,30,0.85); }
 .hud-btn svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; }
 #btn-menu { top:12px; right:12px; display:none; z-index:30; }
+#btnFull { top:12px; right:74px; display:none; z-index:30; font-size:22px; }
 .panel { font-family:monospace; color:#fff; }
 </style>
 </head>
@@ -476,6 +477,8 @@
         <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         <span>MENU</span>
     </button>
+
+    <button class="hud-btn" id="btnFull" type="button" title="Full screen">⛶</button>
 
         <!-- SPRINT BUTTON WITH RING -->
     <div id="sprint-btn">
@@ -3727,7 +3730,7 @@ function startGame(){
     sprayBtn.style.display='flex';
     sprintBtn.style.display='flex';
     autowalkBtn.style.display='flex';
-    topHud.style.display='flex'; menuBtn.style.display='flex';
+    topHud.style.display='flex'; menuBtn.style.display='flex'; fullBtn.style.display='flex';
     initAudio(); if(audioCtx.state==='suspended') audioCtx.resume();
     gameStarted=true; lastTF=performance.now(); prevTime=performance.now();
     health=STAT_MAX; stamina=STAT_MAX; updateStatusBars(); updateWordCounter();
@@ -3761,7 +3764,7 @@ document.getElementById('revive-yes').addEventListener('click', e=>{
     sprayBtn.style.display = 'flex';
     sprintBtn.style.display = 'flex';
     autowalkBtn.style.display = 'flex';
-    menuBtn.style.display = 'flex';
+    menuBtn.style.display = 'flex'; fullBtn.style.display = 'flex';
     isSprinting = false; sprintBtn.classList.remove('active-sprint');
     isAutoWalking = false; autowalkBtn.classList.remove('active-autowalk');
     const now = performance.now();
@@ -3785,7 +3788,7 @@ function showWinScreen(){
     sprayBtn.style.display = 'none';
     sprintBtn.style.display = 'none';
     autowalkBtn.style.display = 'none';
-    menuBtn.style.display = 'none';
+    menuBtn.style.display = 'none'; fullBtn.style.display = 'none';
     stopAction();
     if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
 }
@@ -3801,7 +3804,7 @@ function showDeathScreen(title, lore){
     document.getElementById('death-lore').innerHTML = lore + '<br><br>Tu glosario te necesita. Despierta.<br><span style="color:#88cc88;">Your glossary needs you. Wake up.</span>';
     sprintBtn.style.display = 'none';
     autowalkBtn.style.display = 'none';
-    menuBtn.style.display = 'none';
+    menuBtn.style.display = 'none'; fullBtn.style.display = 'none';
     reviveScreen.style.display = 'flex';
 }
 
@@ -5375,6 +5378,7 @@ window.addEventListener('resize', () => {
 const overlay   = document.getElementById('overlay');
 const panels    = document.querySelectorAll('.panel');
 const menuBtn   = document.getElementById('btn-menu');
+const fullBtn   = document.getElementById('btnFull');
 const wordCounterEl = document.getElementById('word-counter');
 const cardZoomEl = document.getElementById('card-zoom');
 const SAVE_KEY = 'backroomsGlosarioSave_v1';
@@ -5573,6 +5577,23 @@ function wireBtn(id, fn){
 }
 menuBtn.addEventListener('touchstart', e=>e.stopPropagation(), {passive:true});
 menuBtn.addEventListener('mousedown', e=>e.stopPropagation());
+// ── fullscreen (same pattern as Spanish Dash; target is the whole page:
+// the canvas is a direct child of <body> and the HUD lives in sibling #ui-layer,
+// so no single game container holds both) ──
+function toggleFull(){
+  var el=document.documentElement;
+  try{
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+      if(document.exitFullscreen) document.exitFullscreen();
+      else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }else if(el.requestFullscreen){
+      var p=el.requestFullscreen(); if(p&&p.catch) p.catch(function(){});
+    }else if(el.webkitRequestFullscreen){
+      el.webkitRequestFullscreen();
+    }
+  }catch(e){}
+}
+document.getElementById("btnFull").addEventListener("click",function(){ toggleFull(); });
 wireBtn('btn-menu', openMenu);
 wireBtn('close-menu', closeMenu);
 wireBtn('save-game', saveGame);
