@@ -3941,7 +3941,7 @@ function closeHealPrompt(){
 function openHealPrompt(v){
     closeHealPrompt(); // one prompt at a time; a previous heal chance is lost
     healCurrent=v;healTried=false;
-    healWord.innerHTML='🎤 Di «'+v.es+'» para +15 VIDA';
+    healWord.innerHTML='🎤 Say «'+v.es+'» for +15 VIDA';
     healMeaning.innerHTML=v.emoji+' '+v.en;
     healStatus.textContent='';
     healSetListening(false);
